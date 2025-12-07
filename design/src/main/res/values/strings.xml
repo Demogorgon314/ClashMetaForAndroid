@@ -348,4 +348,13 @@
     <string name="hide_app_icon_desc">You can dial *#*#252746382#*#* to open this App</string>
     <string name="import_from_qr_no_permission">Camera access is restricted. Please enable it in Settings.</string>
     <string name="import_from_qr_exception">An unhandled system exception occurred.</string>
+
+    <string name="auto_close_proxy_on_wifi">Auto Close Proxy on Wi-Fi</string>
+    <string name="auto_close_proxy_on_wifi_summary">Automatically close proxy when connected to specific Wi-Fi networks</string>
+    <string name="auto_close_wifi_list">Wi-Fi List</string>
+    <string name="auto_close_wifi_list_placeholder">Enter Wi-Fi SSID</string>
+    <string name="current_wifi">Current Wi-Fi: %s</string>
+    <string name="current_wifi_not_connected">Not connected to Wi-Fi</string>
+    <string name="auto_restart_proxy">Auto Restart Proxy</string>
+    <string name="auto_restart_proxy_summary">Automatically restart proxy when leaving the specified Wi-Fi networks</string>
 </resources>

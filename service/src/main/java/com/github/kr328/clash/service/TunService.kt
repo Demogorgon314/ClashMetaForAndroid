@@ -32,7 +32,7 @@ class TunService : VpnService(), CoroutineScope by CoroutineScope(Dispatchers.De
         val close = install(CloseModule(self))
         val tun = install(TunModule(self))
         val config = install(ConfigurationModule(self))
-        val network = install(NetworkObserveModule(self))
+        val network = install(NetworkObserveModule(self, store))
 
         if (store.dynamicNotification)
             install(DynamicNotificationModule(self))

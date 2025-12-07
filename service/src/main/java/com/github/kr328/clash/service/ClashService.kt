@@ -26,7 +26,7 @@ class ClashService : BaseService() {
 
         val close = install(CloseModule(self))
         val config = install(ConfigurationModule(self))
-        val network = install(NetworkObserveModule(self))
+        val network = install(NetworkObserveModule(self, store))
 
         if (store.dynamicNotification)
             install(DynamicNotificationModule(self))

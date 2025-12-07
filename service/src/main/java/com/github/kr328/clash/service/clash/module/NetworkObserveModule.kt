@@ -1,12 +1,18 @@
 package com.github.kr328.clash.service.clash.module
 
 import android.app.Service
+import android.content.Context
+import android.content.Intent
 import android.net.*
+import android.net.wifi.WifiInfo
+import android.net.wifi.WifiManager
 import android.os.Build
 import androidx.core.content.getSystemService
 import com.github.kr328.clash.common.log.Log
 import com.github.kr328.clash.core.Clash
+import com.github.kr328.clash.service.store.ServiceStore
 import com.github.kr328.clash.service.util.asSocketAddressText
+import com.github.kr328.clash.common.constants.Intents
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.selects.select
@@ -14,7 +20,10 @@ import kotlinx.coroutines.withContext
 import java.net.InetAddress
 import java.util.concurrent.ConcurrentHashMap
 
-class NetworkObserveModule(service: Service) : Module<Network>(service) {
+class NetworkObserveModule(
+    service: Service,
+    private val store: ServiceStore,
+) : Module<Network>(service) {
     private val connectivity = service.getSystemService<ConnectivityManager>()!!
     private val networks: Channel<Network> = Channel(Channel.UNLIMITED)
     private val request = NetworkRequest.Builder().apply {
@@ -42,6 +51,8 @@ class NetworkObserveModule(service: Service) : Module<Network>(service) {
         override fun onAvailable(network: Network) {
             Log.i("NetworkObserve onAvailable network=$network")
             networkInfos[network] = NetworkInfo()
+
+            checkWifiAndStopProxy(network)
         }
 
         override fun onLosing(network: Network, maxMsToLive: Int) {
@@ -68,8 +79,44 @@ class NetworkObserveModule(service: Service) : Module<Network>(service) {
             networks.trySend(network)
         }
 
+        override fun onCapabilitiesChanged(
+            network: Network,
+            networkCapabilities: NetworkCapabilities
+        ) {
+            checkWifiAndStopProxy(network)
+        }
+
         override fun onUnavailable() {
             Log.i("NetworkObserve onUnavailable")
+        }
+    }
+
+    private fun checkWifiAndStopProxy(network: Network) {
+        if (!store.autoCloseProxyOnWifi) return
+
+        val caps = connectivity.getNetworkCapabilities(network) ?: return
+
+        if (caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
+            val ssid = try {
+                if (Build.VERSION.SDK_INT >= 29) {
+                    (caps.transportInfo as? WifiInfo)?.ssid
+                } else {
+                    val wifiManager = service.applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
+                    wifiManager?.connectionInfo?.ssid
+                }
+            } catch (e: Exception) {
+                null
+            }
+
+            if (ssid != null) {
+                val cleanSsid = ssid.removePrefix("\"").removeSuffix("\"")
+
+                if (cleanSsid in store.autoCloseWifiList) {
+                    Log.i("Auto close proxy on wifi: $cleanSsid")
+
+                    service.sendBroadcast(Intent(Intents.ACTION_CLASH_REQUEST_STOP).setPackage(service.packageName))
+                }
+            }
         }
     }
 

@@ -20,9 +20,11 @@ class NetworkSettingsDesign(
     uiStore: UiStore,
     srvStore: ServiceStore,
     running: Boolean,
+    currentWifiSsid: String?,
 ) : Design<NetworkSettingsDesign.Request>(context) {
     enum class Request {
-        StartAccessControlList
+        StartAccessControlList,
+        RequestLocationPermission,
     }
 
     private val binding = DesignSettingsCommonBinding
@@ -127,6 +129,62 @@ class NetworkSettingsDesign(
             ) {
                 clicked {
                     requests.trySend(Request.StartAccessControlList)
+                }
+            }
+
+            category(R.string.auto_close_proxy_on_wifi)
+
+            // Show current Wi-Fi SSID
+            val currentWifiText = if (currentWifiSsid != null) {
+                context.getString(R.string.current_wifi, currentWifiSsid)
+            } else {
+                context.getString(R.string.current_wifi_not_connected)
+            }
+            tips(text = currentWifiText)
+
+            val autoCloseDependencies: MutableList<Preference> = mutableListOf()
+
+            val autoCloseWifiListProxy = object {
+                var list: List<String>?
+                    get() = srvStore.autoCloseWifiList.sorted()
+                    set(value) {
+                        srvStore.autoCloseWifiList = value?.toSet() ?: emptySet()
+                    }
+            }
+
+            val autoCloseSwitch = switch(
+                value = srvStore::autoCloseProxyOnWifi,
+                title = R.string.auto_close_proxy_on_wifi,
+                summary = R.string.auto_close_proxy_on_wifi_summary,
+            ) {
+                listener = OnChangedListener {
+                    if (srvStore.autoCloseProxyOnWifi) {
+                        requests.trySend(Request.RequestLocationPermission)
+                    }
+                    autoCloseDependencies.forEach {
+                        it.enabled = srvStore.autoCloseProxyOnWifi
+                    }
+                }
+            }
+
+            switch(
+                value = srvStore::autoRestartProxy,
+                title = R.string.auto_restart_proxy,
+                summary = R.string.auto_restart_proxy_summary,
+                configure = autoCloseDependencies::add,
+            )
+
+            editableTextList(
+                value = autoCloseWifiListProxy::list,
+                adapter = TextAdapter.String,
+                title = R.string.auto_close_wifi_list,
+                placeholder = R.string.auto_close_wifi_list_placeholder,
+                configure = autoCloseDependencies::add
+            )
+
+            if (!srvStore.autoCloseProxyOnWifi) {
+                autoCloseDependencies.forEach {
+                    it.enabled = false
                 }
             }
 

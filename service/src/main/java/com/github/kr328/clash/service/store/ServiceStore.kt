@@ -65,4 +65,19 @@ class ServiceStore(context: Context) {
         key = "dynamic_notification",
         defaultValue = true
     )
+
+    var autoCloseProxyOnWifi by store.boolean(
+        key = "auto_close_proxy_on_wifi",
+        defaultValue = false
+    )
+
+    var autoCloseWifiList by store.stringSet(
+        key = "auto_close_wifi_list",
+        defaultValue = emptySet()
+    )
+
+    var autoRestartProxy by store.boolean(
+        key = "auto_restart_proxy",
+        defaultValue = true
+    )
 }
